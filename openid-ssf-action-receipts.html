@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OpenID SSF Action Receipts Extension 1.0</title>
+  <style>
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2em 2em 4em 2em;
+      color: #111;
+      background: #fff;
+    }
+    h1 { font-size: 1.6em; margin-top: 1.5em; }
+    h2 { font-size: 1.25em; margin-top: 2em; border-bottom: 1px solid #ccc; padding-bottom: 0.2em; }
+    h3 { font-size: 1.05em; margin-top: 1.5em; }
+    h4 { font-size: 1em; margin-top: 1.2em; font-style: italic; }
+    pre {
+      background: #f4f4f4;
+      border: 1px solid #ccc;
+      padding: 1em;
+      overflow-x: auto;
+      font-size: 0.88em;
+      border-radius: 3px;
+    }
+    code { font-family: 'Courier New', monospace; }
+    .figure-caption {
+      font-size: 0.9em;
+      color: #555;
+      margin-top: -0.5em;
+      margin-bottom: 1em;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1em 0;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 0.4em 0.8em;
+      text-align: left;
+    }
+    th { background: #eee; }
+    /* ── OpenID-style top banner ── */
+    .doc-banner {
+      width: 100%;
+      border-collapse: collapse;
+      border: none;
+      margin-bottom: 0;
+      font-size: 0.9em;
+    }
+    .doc-banner td {
+      border: none;
+      padding: 0.15em 0;
+    }
+    .doc-banner .col-left  { text-align: left;  width: 33%; }
+    .doc-banner .col-mid   { text-align: center; width: 34%; }
+    .doc-banner .col-right { text-align: right;  width: 33%; }
+
+    /* ── OpenID-style metadata definition list ── */
+    .doc-meta {
+      margin: 1.2em 0 2em 0;
+      font-size: 0.95em;
+    }
+    .doc-meta dl {
+      display: grid;
+      grid-template-columns: max-content 1fr;
+      gap: 0.25em 1.5em;
+      margin: 0;
+      padding: 0;
+    }
+    .doc-meta dt {
+      font-weight: normal;
+      color: #333;
+      white-space: nowrap;
+      margin: 0;
+      padding: 0;
+    }
+    .doc-meta dt::after { content: ":"; }
+    .doc-meta dd {
+      margin: 0;
+      padding: 0;
+    }
+    .doc-meta .author-block { line-height: 1.5; }
+    .doc-meta .author-block span { display: block; }
+    .doc-meta .author-block span.org { color: #555; padding-left: 0; }
+
+    a { color: #00519c; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .toc { margin: 1em 0 2em 0; }
+    .toc ul { list-style: none; padding-left: 1.5em; margin: 0.3em 0; }
+    .toc > ul { padding-left: 0; }
+    .toc li { margin: 0.2em 0; }
+    dt { font-weight: bold; margin-top: 0.8em; }
+    dd { margin-left: 2em; }
+    .normative { font-variant: small-caps; }
+  </style>
+</head>
+<body>
+
+<!-- ── Metadata block ── -->
+<div class="doc-meta">
+  <dl>
+    <dt>Workgroup</dt>
+    <dd>Shared Signals</dd>
+
+    <dt>Published</dt>
+    <dd>[Date TBD]</dd>
+
+    <dt>Authors</dt>
+    <dd>
+      <div style="display:flex; gap: 3em;">
+        <div class="author-block">
+          <span>S. O'Dell</span>
+          <span class="org">CVS</span>
+        </div>
+        <div class="author-block">
+          <span>M. Kiser</span>
+          <span class="org">SailPoint</span>
+        </div>
+      </div>
+    </dd>
+  </dl>
+</div>
+
+<h1 id="title">OpenID SSF Action Receipts Extension 1.0</h1>
+
+<h2 id="abstract">Abstract</h2>
+
+<p>
+  This document defines an extension to the OpenID Shared Signals Framework
+  (SSF) Specification 1.0 [<a href="#SSF">SSF</a>] that introduces a mechanism
+  for SSF Receivers to send <em>Action Receipts</em> back to SSF Transmitters.
+  An Action Receipt is a Security Event Token (SET) [<a href="#RFC8417">RFC8417</a>]
+  sent by a Receiver to a Transmitter to indicate that one or more actions
+  were taken in response to a previously received event. Action Receipts
+  reference the originating event via its <code>txn</code> claim and carry
+  freeform human-readable descriptions of the actions taken. This extension
+  defines a new event type, a new Transmitter Configuration Metadata field
+  for advertising the receipt endpoint, and an optional acknowledgement
+  mechanism by which Transmitters may confirm receipt of an Action Receipt.
+</p>
+
+<h2 id="name-table-of-contents">Table of Contents</h2>
+
+<div class="toc">
+  <ul>
+    <li><a href="#section-1">1.</a> <a href="#name-introduction">Introduction</a>
+      <ul>
+        <li><a href="#section-1.1">1.1.</a> <a href="#name-notational-conventions">Notational Conventions</a></li>
+        <li><a href="#section-1.2">1.2.</a> <a href="#name-terminology">Terminology</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-2">2.</a> <a href="#name-overview">Overview</a></li>
+    <li><a href="#section-3">3.</a> <a href="#name-action-receipt-event-type">Action Receipt Event Type</a>
+      <ul>
+        <li><a href="#section-3.1">3.1.</a> <a href="#name-event-type-uri">Event Type URI</a></li>
+        <li><a href="#section-3.2">3.2.</a> <a href="#name-event-subject">Event Subject</a></li>
+        <li><a href="#section-3.3">3.3.</a> <a href="#name-event-claims">Event-Specific Claims</a>
+          <ul>
+            <li><a href="#section-3.3.1">3.3.1.</a> <a href="#name-ref-txn">The <code>ref_txn</code> Claim</a></li>
+            <li><a href="#section-3.3.2">3.3.2.</a> <a href="#name-actions">The <code>actions</code> Claim</a></li>
+            <li><a href="#section-3.3.3">3.3.3.</a> <a href="#name-action-object">The Action Object</a></li>
+          </ul>
+        </li>
+        <li><a href="#section-3.4">3.4.</a> <a href="#name-set-profile">SET Profile for Action Receipts</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-4">4.</a> <a href="#name-receipt-endpoint">Action Receipt Endpoint</a>
+      <ul>
+        <li><a href="#section-4.1">4.1.</a> <a href="#name-endpoint-advertisement">Endpoint Advertisement</a></li>
+        <li><a href="#section-4.2">4.2.</a> <a href="#name-endpoint-request">Request</a></li>
+        <li><a href="#section-4.3">4.3.</a> <a href="#name-endpoint-response">Response</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-5">5.</a> <a href="#name-acknowledgement">Optional Acknowledgement</a>
+      <ul>
+        <li><a href="#section-5.1">5.1.</a> <a href="#name-ack-event-type">Acknowledgement Event Type</a></li>
+        <li><a href="#section-5.2">5.2.</a> <a href="#name-ack-delivery">Acknowledgement Delivery</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-6">6.</a> <a href="#name-examples">Examples</a>
+      <ul>
+        <li><a href="#section-6.1">6.1.</a> <a href="#name-example-single-action">Single Action Receipt</a></li>
+        <li><a href="#section-6.2">6.2.</a> <a href="#name-example-multi-action">Multiple Actions Receipt</a></li>
+        <li><a href="#section-6.3">6.3.</a> <a href="#name-example-acknowledgement">Acknowledgement SET</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-7">7.</a> <a href="#name-security-considerations">Security Considerations</a>
+      <ul>
+        <li><a href="#section-7.1">7.1.</a> <a href="#name-sec-auth">Authorization of Receipt Senders</a></li>
+        <li><a href="#section-7.2">7.2.</a> <a href="#name-sec-replay">Replay and Duplication</a></li>
+        <li><a href="#section-7.3">7.3.</a> <a href="#name-sec-forgery">Receipt Forgery</a></li>
+        <li><a href="#section-7.4">7.4.</a> <a href="#name-sec-enumeration">Event Enumeration via Receipts</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-8">8.</a> <a href="#name-privacy-considerations">Privacy Considerations</a>
+      <ul>
+        <li><a href="#section-8.1">8.1.</a> <a href="#name-priv-action-text">Action Description Leakage</a></li>
+        <li><a href="#section-8.2">8.2.</a> <a href="#name-priv-minimization">Data Minimization</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-9">9.</a> <a href="#name-iana-considerations">IANA Considerations</a>
+      <ul>
+        <li><a href="#section-9.1">9.1.</a> <a href="#name-iana-event-types">SSF Event Type Registrations</a></li>
+        <li><a href="#section-9.2">9.2.</a> <a href="#name-iana-metadata">Transmitter Configuration Metadata Registration</a></li>
+      </ul>
+    </li>
+    <li><a href="#section-10">10.</a> <a href="#name-normative-references">Normative References</a></li>
+    <li><a href="#appendix-A">Appendix A.</a> <a href="#name-acknowledgements">Acknowledgements</a></li>
+    <li><a href="#appendix-B">Appendix B.</a> <a href="#name-notices">Notices</a></li>
+  </ul>
+</div>
+
+<!-- SECTION 1 -->
+<h2 id="section-1"><a href="#section-1">1.</a> <span id="name-introduction">Introduction</span></h2>
+
+<p>
+  The OpenID Shared Signals Framework [<a href="#SSF">SSF</a>] defines a
+  unidirectional flow of Security Event Tokens (SETs) from a Transmitter to
+  one or more Receivers. While this model is well suited to event notification,
+  it provides no native mechanism for a Receiver to communicate back to the
+  Transmitter about actions it has taken in response to received events.
+</p>
+<p>
+  In many deployments, Transmitters benefit from knowing whether and how a
+  Receiver has acted upon a signaled event — for example, whether a session was
+  terminated, a user was prompted for re-authentication, or an access policy was
+  enforced. This feedback enables Transmitters to make better downstream
+  decisions, close audit loops, and satisfy compliance requirements.
+</p>
+<p>
+  This specification defines an Action Receipt mechanism for SSF. An Action
+  Receipt is a SET originated by the Receiver and delivered to the Transmitter
+  via a dedicated endpoint. It references the originating event by its
+  <code>txn</code> claim, describes one or more actions taken by the Receiver
+  in freeform text, and optionally includes structured metadata about each
+  action. The Transmitter MAY optionally acknowledge receipt of an Action
+  Receipt by sending its own acknowledgement SET back to the Receiver via the
+  existing SSF event stream.
+</p>
+
+<h3 id="section-1.1"><a href="#section-1.1">1.1.</a> <span id="name-notational-conventions">Notational Conventions</span></h3>
+
+<p>
+  The key words <span class="normative">MUST</span>,
+  <span class="normative">MUST NOT</span>,
+  <span class="normative">REQUIRED</span>,
+  <span class="normative">SHALL</span>,
+  <span class="normative">SHALL NOT</span>,
+  <span class="normative">SHOULD</span>,
+  <span class="normative">SHOULD NOT</span>,
+  <span class="normative">RECOMMENDED</span>,
+  <span class="normative">NOT RECOMMENDED</span>,
+  <span class="normative">MAY</span>, and
+  <span class="normative">OPTIONAL</span>
+  in this document are to be interpreted as described in BCP 14
+  [<a href="#RFC2119">RFC2119</a>] [<a href="#RFC8174">RFC8174</a>] when, and
+  only when, they appear in all capitals, as shown here.
+</p>
+
+<h3 id="section-1.2"><a href="#section-1.2">1.2.</a> <span id="name-terminology">Terminology</span></h3>
+
+<p>This specification uses the following terms, in addition to those defined in [<a href="#SSF">SSF</a>]:</p>
+
+<dl>
+  <dt>Action Receipt</dt>
+  <dd>A Security Event Token (SET) originated by an SSF Receiver and delivered
+  to an SSF Transmitter to indicate that one or more actions were taken in
+  response to a previously received SSF event.</dd>
+
+  <dt>Action Receipt Endpoint</dt>
+  <dd>An HTTP endpoint hosted by the SSF Transmitter at which it accepts
+  Action Receipts from Receivers.</dd>
+
+  <dt>Receipt Sender</dt>
+  <dd>The SSF Receiver that constructs and delivers an Action Receipt to a
+  Transmitter. In the context of an Action Receipt SET, the Receipt Sender
+  acts as the issuer of that SET.</dd>
+
+  <dt>Receipt Acknowledgement</dt>
+  <dd>An optional SET originated by the SSF Transmitter and delivered to the
+  Receiver via the existing event stream to confirm that a specific Action
+  Receipt was received and processed.</dd>
+
+  <dt>Originating Event</dt>
+  <dd>The SSF event, previously transmitted by the Transmitter, to which an
+  Action Receipt refers.</dd>
+</dl>
+
+<!-- SECTION 2 -->
+<h2 id="section-2"><a href="#section-2">2.</a> <span id="name-overview">Overview</span></h2>
+
+<p>
+  The Action Receipt flow proceeds as follows:
+</p>
+<ol>
+  <li>An SSF Transmitter sends a SET to an SSF Receiver over an established
+  event stream. The SET carries a <code>txn</code> claim that uniquely
+  identifies the underlying event.</li>
+  <li>The Receiver processes the event and takes one or more actions in
+  response.</li>
+  <li>The Receiver constructs an Action Receipt SET referencing the
+  originating event's <code>txn</code> value and including a description of
+  the action(s) taken.</li>
+  <li>The Receiver delivers the Action Receipt SET via an HTTP POST to the
+  Transmitter's Action Receipt Endpoint, which is discovered from the
+  Transmitter Configuration Metadata.</li>
+  <li>Optionally, the Transmitter MAY send a Receipt Acknowledgement SET back
+  to the Receiver over the existing event stream to confirm processing of the
+  Action Receipt.</li>
+</ol>
+<p>
+  The Action Receipt does not alter the semantics of the original SSF event
+  stream. It is a separate, complementary channel from Receiver to Transmitter.
+  Receivers are not required to send Action Receipts, and Transmitters are not
+  required to act upon them beyond acknowledging receipt if they choose to do so.
+</p>
+
+<!-- SECTION 3 -->
+<h2 id="section-3"><a href="#section-3">3.</a> <span id="name-action-receipt-event-type">Action Receipt Event Type</span></h2>
+
+<h3 id="section-3.1"><a href="#section-3.1">3.1.</a> <span id="name-event-type-uri">Event Type URI</span></h3>
+
+<p>
+  The Action Receipt event type is identified by the following URI:
+</p>
+<pre><code>https://schemas.openid.net/secevent/ssf/event-type/action-receipt</code></pre>
+<p class="figure-caption">
+  <a id="figure-1"></a>Figure 1: Action Receipt Event Type URI
+</p>
+
+<h3 id="section-3.2"><a href="#section-3.2">3.2.</a> <span id="name-event-subject">Event Subject</span></h3>
+
+<p>
+  An Action Receipt SET MUST include a top-level <code>sub_id</code> claim
+  as defined in Section 3 of [<a href="#SSF">SSF</a>]. The subject of an
+  Action Receipt is the same Subject Principal as identified in the
+  Originating Event. The Receipt Sender MUST use the same Subject Identifier
+  format and value as was used in the <code>sub_id</code> claim of the
+  Originating Event, if that information is available to it.
+</p>
+<p>
+  If the Receipt Sender does not have access to the subject of the Originating
+  Event, it MAY omit the specific subject identifier members and instead use
+  an opaque identifier that allows the Transmitter to correlate the receipt
+  to the original event via the <code>ref_txn</code> claim.
+</p>
+
+<h3 id="section-3.3"><a href="#section-3.3">3.3.</a> <span id="name-event-claims">Event-Specific Claims</span></h3>
+
+<p>
+  The event object for the Action Receipt event type, nested within the
+  <code>events</code> claim of the SET, MUST include the claims defined in
+  this section.
+</p>
+
+<h4 id="section-3.3.1"><a href="#section-3.3.1">3.3.1.</a> <span id="name-ref-txn">The <code>ref_txn</code> Claim</span></h4>
+
+<dl>
+  <dt><code>ref_txn</code></dt>
+  <dd>
+    REQUIRED. A string containing the value of the <code>txn</code> claim
+    from the Originating Event SET. This value MUST match exactly the
+    <code>txn</code> value of the event to which this receipt refers.
+    Transmitters MUST use the <code>ref_txn</code> value to correlate an
+    Action Receipt to an Originating Event. If the Transmitter cannot find a
+    previously transmitted event with a matching <code>txn</code> value, it
+    SHOULD log the discrepancy and MAY reject the receipt with an HTTP
+    <code>422 Unprocessable Content</code> response.
+  </dd>
+</dl>
+
+<h4 id="section-3.3.2"><a href="#section-3.3.2">3.3.2.</a> <span id="name-actions">The <code>actions</code> Claim</span></h4>
+
+<dl>
+  <dt><code>actions</code></dt>
+  <dd>
+    REQUIRED. A non-empty JSON array of one or more Action Objects (defined
+    in <a href="#section-3.3.3">Section 3.3.3</a>) describing the actions
+    taken by the Receiver in response to the Originating Event. A Receipt
+    Sender MAY include multiple Action Objects within a single Action Receipt
+    SET to represent multiple distinct actions taken in response to the same
+    Originating Event. The order of elements in the <code>actions</code>
+    array is not significant.
+  </dd>
+</dl>
+
+<h4 id="section-3.3.3"><a href="#section-3.3.3">3.3.3.</a> <span id="name-action-object">The Action Object</span></h4>
+
+<p>
+  Each element of the <code>actions</code> array is a JSON object containing
+  the following members:
+</p>
+
+<dl>
+  <dt><code>description</code></dt>
+  <dd>
+    REQUIRED. A string containing a human-readable, freeform description of
+    the action taken by the Receiver. This value MUST NOT be empty. This
+    specification imposes no constraints on the format, language, or length
+    of the description beyond those imposed by JSON string encoding, though
+    Receipt Senders SHOULD keep descriptions concise. Transmitters MUST NOT
+    use this field for automated decision-making without additional out-of-band
+    agreement on a structured vocabulary.
+  </dd>
+
+  <dt><code>action_time</code></dt>
+  <dd>
+    OPTIONAL. A JSON numeric value representing the time at which the action
+    was taken, as a Unix timestamp (seconds since the Unix epoch), consistent
+    with the definition in [<a href="#RFC7519">RFC7519</a>]. If omitted, the
+    time of the action is considered unknown.
+  </dd>
+
+  <dt><code>action_id</code></dt>
+  <dd>
+    OPTIONAL. A string containing a Receipt Sender-assigned identifier for
+    this specific action instance. This value MAY be used by the Transmitter
+    to reference a specific action within an acknowledgement or for logging
+    purposes. The value MUST be unique within the scope of the containing
+    Action Receipt SET.
+  </dd>
+</dl>
+
+<p>
+  Action Objects MAY include additional members. Transmitters MUST ignore any
+  members they do not recognize.
+</p>
+
+<h3 id="section-3.4"><a href="#section-3.4">3.4.</a> <span id="name-set-profile">SET Profile for Action Receipts</span></h3>
+
+<p>
+  Action Receipt SETs MUST conform to the SSF SET profile defined in
+  Section 4.1 of [<a href="#SSF">SSF</a>], with the following additional
+  requirements and clarifications:
+</p>
+<ul>
+  <li>The <code>iss</code> claim MUST identify the Receipt Sender (i.e. the
+  SSF Receiver that is originating the Action Receipt). This value MUST match
+  an identity known to the Transmitter as an authorized Receipt Sender for the
+  stream in question.</li>
+  <li>The <code>aud</code> claim MUST identify the SSF Transmitter as the
+  intended audience of the Action Receipt SET.</li>
+  <li>The <code>iat</code> claim MUST be present and reflect the time at which
+  the Action Receipt SET was issued by the Receipt Sender.</li>
+  <li>The <code>jti</code> claim MUST be present and MUST contain a value
+  that is unique for the Receipt Sender, to enable deduplication by the
+  Transmitter.</li>
+  <li>The <code>txn</code> claim of the Action Receipt SET itself is OPTIONAL.
+  It MUST NOT be confused with the <code>ref_txn</code> field inside the event
+  object, which references the Originating Event.</li>
+  <li>The <code>exp</code> claim MUST NOT be present, consistent with
+  Section 4.1.7 of [<a href="#SSF">SSF</a>].</li>
+  <li>The <code>sub</code> claim MUST NOT be present, consistent with
+  Section 4.1.2 of [<a href="#SSF">SSF</a>].</li>
+  <li>The <code>events</code> claim MUST contain exactly one event, keyed by
+  the Action Receipt event type URI defined in
+  <a href="#section-3.1">Section 3.1</a>.</li>
+</ul>
+
+<!-- SECTION 4 -->
+<h2 id="section-4"><a href="#section-4">4.</a> <span id="name-receipt-endpoint">Action Receipt Endpoint</span></h2>
+
+<h3 id="section-4.1"><a href="#section-4.1">4.1.</a> <span id="name-endpoint-advertisement">Endpoint Advertisement</span></h3>
+
+<p>
+  SSF Transmitters that support this extension MUST advertise the Action
+  Receipt Endpoint by including the following field in their Transmitter
+  Configuration Metadata, as defined in Section 7.1 of [<a href="#SSF">SSF</a>]:
+</p>
+
+<dl>
+  <dt><code>action_receipt_endpoint</code></dt>
+  <dd>
+    OPTIONAL. A URL string identifying the Action Receipt Endpoint at which
+    the Transmitter accepts Action Receipt SETs from Receivers. The URL MUST
+    use the <code>https</code> scheme. If this field is absent from the
+    Transmitter Configuration Metadata, the Transmitter does not support
+    this extension and Receivers MUST NOT attempt to deliver Action Receipts
+    to that Transmitter.
+  </dd>
+</dl>
+
+<p>
+  The presence of this field in the Transmitter Configuration Metadata
+  constitutes the Transmitter's declaration of support for this extension.
+  No additional capability negotiation is required to enable the delivery of
+  Action Receipts.
+</p>
+
+<h3 id="section-4.2"><a href="#section-4.2">4.2.</a> <span id="name-endpoint-request">Request</span></h3>
+
+<p>
+  A Receipt Sender delivers an Action Receipt SET to the Transmitter by
+  sending an HTTP POST request to the <code>action_receipt_endpoint</code>
+  URL. The request MUST conform to the following requirements:
+</p>
+<ul>
+  <li>The HTTP method MUST be <code>POST</code>.</li>
+  <li>The <code>Content-Type</code> header MUST be
+  <code>application/secevent+jwt</code>.</li>
+  <li>The request body MUST contain a single Action Receipt SET, serialized
+  as a compact JWS [<a href="#RFC7515">RFC7515</a>].</li>
+  <li>The request MUST be authenticated. The Transmitter MUST define and
+  document the authentication scheme(s) it accepts. Implementations SHOULD
+  use OAuth 2.0 Bearer Tokens [<a href="#RFC6750">RFC6750</a>] or an equivalent
+  credential issued by the Transmitter to the Receiver out-of-band.</li>
+  <li>The request MUST be made over TLS [<a href="#RFC8446">RFC8446</a>].</li>
+</ul>
+
+<h3 id="section-4.3"><a href="#section-4.3">4.3.</a> <span id="name-endpoint-response">Response</span></h3>
+
+<p>
+  The Transmitter MUST respond to a valid Action Receipt request with one of
+  the following HTTP status codes:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Status Code</th><th>Meaning</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>202 Accepted</code></td>
+      <td>The Action Receipt SET was accepted for processing. The Transmitter
+      MAY process the receipt asynchronously.</td>
+    </tr>
+    <tr>
+      <td><code>400 Bad Request</code></td>
+      <td>The request was malformed (e.g. invalid JWT, missing required
+      claims). The response body SHOULD include an error description.</td>
+    </tr>
+    <tr>
+      <td><code>401 Unauthorized</code></td>
+      <td>The request was not authenticated or authentication failed.</td>
+    </tr>
+    <tr>
+      <td><code>403 Forbidden</code></td>
+      <td>The authenticated Receipt Sender is not authorized to submit Action
+      Receipts for the referenced stream or subject.</td>
+    </tr>
+    <tr>
+      <td><code>422 Unprocessable Content</code></td>
+      <td>The SET was well-formed but semantically invalid — for example, the
+      <code>ref_txn</code> value does not correspond to any known Originating
+      Event.</td>
+    </tr>
+    <tr>
+      <td><code>429 Too Many Requests</code></td>
+      <td>The Receipt Sender has exceeded the Transmitter's rate limits. The
+      Transmitter SHOULD include a <code>Retry-After</code> header.</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>
+  The response body for a <code>202 Accepted</code> response MAY be empty.
+  The Transmitter MUST NOT include any sensitive information about the
+  Originating Event in error responses.
+</p>
+
+<!-- SECTION 5 -->
+<h2 id="section-5"><a href="#section-5">5.</a> <span id="name-acknowledgement">Optional Acknowledgement</span></h2>
+
+<h3 id="section-5.1"><a href="#section-5.1">5.1.</a> <span id="name-ack-event-type">Acknowledgement Event Type</span></h3>
+
+<p>
+  A Transmitter that wishes to confirm to a Receiver that an Action Receipt
+  was received and processed MAY send a Receipt Acknowledgement SET. The
+  Receipt Acknowledgement event type is identified by the following URI:
+</p>
+<pre><code>https://schemas.openid.net/secevent/ssf/event-type/action-receipt-acknowledgement</code></pre>
+<p class="figure-caption">
+  <a id="figure-2"></a>Figure 2: Action Receipt Acknowledgement Event Type URI
+</p>
+
+<p>
+  The event object for this event type contains the following claims:
+</p>
+
+<dl>
+  <dt><code>receipt_jti</code></dt>
+  <dd>
+    REQUIRED. A string containing the value of the <code>jti</code> claim
+    from the Action Receipt SET being acknowledged. This allows the Receiver
+    to unambiguously correlate the acknowledgement to a specific previously
+    sent Action Receipt.
+  </dd>
+
+  <dt><code>status</code></dt>
+  <dd>
+    REQUIRED. A string indicating the outcome of the Transmitter's processing
+    of the Action Receipt. This specification defines the following values:
+    <ul>
+      <li><code>processed</code> — The Action Receipt was successfully
+      processed and the described actions have been recorded by the
+      Transmitter.</li>
+      <li><code>rejected</code> — The Action Receipt was received but was
+      rejected by the Transmitter. A <code>reason</code> claim SHOULD be
+      included.</li>
+      <li><code>unknown_event</code> — The <code>ref_txn</code> value in the
+      Action Receipt did not correspond to any Originating Event known to the
+      Transmitter.</li>
+    </ul>
+    Transmitters MAY define additional status values. Receivers MUST treat
+    any unrecognized status value as an opaque string and MUST NOT fail on
+    receipt of an unrecognized value.
+  </dd>
+
+  <dt><code>reason</code></dt>
+  <dd>
+    OPTIONAL. A human-readable string providing additional context for the
+    acknowledgement, particularly when <code>status</code> is
+    <code>rejected</code> or <code>unknown_event</code>.
+  </dd>
+</dl>
+
+<h3 id="section-5.2"><a href="#section-5.2">5.2.</a> <span id="name-ack-delivery">Acknowledgement Delivery</span></h3>
+
+<p>
+  A Receipt Acknowledgement SET is delivered by the Transmitter to the Receiver
+  over the existing SSF event stream using the delivery mechanism already
+  negotiated for that stream (push or poll), as defined in Section 6 of
+  [<a href="#SSF">SSF</a>]. No new delivery endpoint is required.
+</p>
+<p>
+  Receipt Acknowledgement SETs MUST conform to the full SSF SET profile
+  defined in Section 4.1 of [<a href="#SSF">SSF</a>]. The <code>iss</code>
+  claim MUST identify the Transmitter. The <code>aud</code> claim MUST
+  identify the Receiver. The <code>sub_id</code> claim SHOULD use the same
+  Subject Identifier as the Originating Event to which the acknowledged
+  receipt referred, if that information is available to the Transmitter.
+</p>
+<p>
+  Receivers MUST NOT require a Receipt Acknowledgement as a condition of
+  continued event stream operation. The acknowledgement mechanism is strictly
+  OPTIONAL for Transmitters, and its absence MUST NOT be interpreted by the
+  Receiver as an error condition.
+</p>
+
+<!-- SECTION 6 -->
+<h2 id="section-6"><a href="#section-6">6.</a> <span id="name-examples">Examples</span></h2>
+
+<h3 id="section-6.1"><a href="#section-6.1">6.1.</a> <span id="name-example-single-action">Single Action Receipt</span></h3>
+
+<p>
+  The following is a non-normative example of an Action Receipt SET payload
+  containing a single action, referencing an Originating Event by its
+  <code>txn</code> value.
+</p>
+
+<pre><code>{
+  "typ": "secevent+jwt",
+  "alg": "RS256"
+}
+.
+{
+  "jti": "ar-7f3a1c29-4b8e-4d22-a9f1-0012beef4321",
+  "iss": "https://receiver.example.com",
+  "aud": "https://transmitter.example.com",
+  "iat": 1710000500,
+  "sub_id": {
+    "format": "email",
+    "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c3a2afaaa0a683a6bba2aeb3afa6eda0acae">[email&#160;protected]</a>"
+  },
+  "events": {
+    "https://schemas.openid.net/secevent/ssf/event-type/action-receipt": {
+      "ref_txn": "8675309",
+      "actions": [
+        {
+          "action_id": "act-001",
+          "description": "User session was immediately terminated and the user was redirected to the login page.",
+          "action_time": 1710000450
+        }
+      ]
+    }
+  }
+}</code></pre>
+<p class="figure-caption">
+  <a id="figure-3"></a>Figure 3: Example Single Action Receipt SET Payload
+</p>
+
+<h3 id="section-6.2"><a href="#section-6.2">6.2.</a> <span id="name-example-multi-action">Multiple Actions Receipt</span></h3>
+
+<p>
+  The following is a non-normative example of an Action Receipt SET payload
+  containing multiple actions taken in response to the same Originating Event.
+</p>
+
+<pre><code>{
+  "typ": "secevent+jwt",
+  "alg": "RS256"
+}
+.
+{
+  "jti": "ar-9c21b7d4-1122-4abc-81de-00aabbcc9988",
+  "iss": "https://receiver.example.com",
+  "aud": "https://transmitter.example.com",
+  "iat": 1710001000,
+  "sub_id": {
+    "format": "iss_sub",
+    "iss": "https://idp.example.com/",
+    "sub": "user-4567"
+  },
+  "events": {
+    "https://schemas.openid.net/secevent/ssf/event-type/action-receipt": {
+      "ref_txn": "TXN-2024-XYZ",
+      "actions": [
+        {
+          "action_id": "act-001",
+          "description": "Active session tokens for the user were revoked across all devices.",
+          "action_time": 1710000800
+        },
+        {
+          "action_id": "act-002",
+          "description": "User account was temporarily locked pending re-verification.",
+          "action_time": 1710000810
+        },
+        {
+          "action_id": "act-003",
+          "description": "Security team was notified via internal alerting system.",
+          "action_time": 1710000820
+        }
+      ]
+    }
+  }
+}</code></pre>
+<p class="figure-caption">
+  <a id="figure-4"></a>Figure 4: Example Multiple Actions Receipt SET Payload
+</p>
+
+<h3 id="section-6.3"><a href="#section-6.3">6.3.</a> <span id="name-example-acknowledgement">Acknowledgement SET</span></h3>
+
+<p>
+  The following is a non-normative example of a Receipt Acknowledgement SET
+  sent by the Transmitter back to the Receiver over the existing event stream.
+</p>
+
+<pre><code>{
+  "typ": "secevent+jwt",
+  "alg": "RS256"
+}
+.
+{
+  "jti": "ack-cc44b991-5e72-4d11-bb03-998877aabbff",
+  "iss": "https://transmitter.example.com",
+  "aud": "https://receiver.example.com",
+  "iat": 1710001100,
+  "sub_id": {
+    "format": "email",
+    "email": "<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="71101d181214311409101c011d145f121e1c">[email&#160;protected]</a>"
+  },
+  "events": {
+    "https://schemas.openid.net/secevent/ssf/event-type/action-receipt-acknowledgement": {
+      "receipt_jti": "ar-7f3a1c29-4b8e-4d22-a9f1-0012beef4321",
+      "status": "processed"
+    }
+  }
+}</code></pre>
+<p class="figure-caption">
+  <a id="figure-5"></a>Figure 5: Example Receipt Acknowledgement SET Payload
+</p>
+
+<!-- SECTION 7 -->
+<h2 id="section-7"><a href="#section-7">7.</a> <span id="name-security-considerations">Security Considerations</span></h2>
+
+<h3 id="section-7.1"><a href="#section-7.1">7.1.</a> <span id="name-sec-auth">Authorization of Receipt Senders</span></h3>
+
+<p>
+  Transmitters MUST authenticate all requests to the Action Receipt Endpoint
+  and MUST verify that the authenticated identity corresponds to a Receiver
+  that is authorized for the relevant event stream. Transmitters MUST reject
+  Action Receipt SETs whose <code>iss</code> claim does not match the
+  authenticated identity of the requester.
+</p>
+<p>
+  Transmitters SHOULD enforce that an Action Receipt can only reference events
+  that were transmitted on streams to which the authenticated Receipt Sender
+  is subscribed. Accepting receipts referencing events on streams the sender
+  was not party to could enable information inference attacks.
+</p>
+
+<h3 id="section-7.2"><a href="#section-7.2">7.2.</a> <span id="name-sec-replay">Replay and Duplication</span></h3>
+
+<p>
+  Transmitters MUST track the <code>jti</code> values of received Action
+  Receipt SETs and MUST reject any SET whose <code>jti</code> has been
+  previously processed. The window over which <code>jti</code> values are
+  retained is at the Transmitter's discretion but SHOULD be sufficient to
+  prevent plausible replay attacks given expected network latency and clock
+  skew. Transmitters SHOULD also validate that the <code>iat</code> claim of
+  an incoming Action Receipt SET falls within an acceptable window of the
+  current time.
+</p>
+
+<h3 id="section-7.3"><a href="#section-7.3">7.3.</a> <span id="name-sec-forgery">Receipt Forgery</span></h3>
+
+<p>
+  Action Receipt SETs MUST be signed by the Receipt Sender using a key that
+  the Transmitter can verify. Transmitters MUST validate the JWS signature
+  of each incoming Action Receipt SET before processing its contents.
+  Transmitters SHOULD publish the mechanism by which they discover a Receipt
+  Sender's public signing keys (e.g. a JWKS URI endpoint exposed by the
+  Receiver, analogous to the <code>jwks_uri</code> in Transmitter
+  Configuration Metadata).
+</p>
+
+<h3 id="section-7.4"><a href="#section-7.4">7.4.</a> <span id="name-sec-enumeration">Event Enumeration via Receipts</span></h3>
+
+<p>
+  Transmitters SHOULD take care not to reveal, through error responses or
+  acknowledgement messages, information about events that the Receipt Sender
+  was not authorized to receive. In particular, error responses for unmatched
+  <code>ref_txn</code> values SHOULD be indistinguishable from responses for
+  well-formed but unrecognized values, to prevent Receipt Senders from probing
+  for the existence of events on other streams.
+</p>
+
+<!-- SECTION 8 -->
+<h2 id="section-8"><a href="#section-8">8.</a> <span id="name-privacy-considerations">Privacy Considerations</span></h2>
+
+<h3 id="section-8.1"><a href="#section-8.1">8.1.</a> <span id="name-priv-action-text">Action Description Leakage</span></h3>
+
+<p>
+  The freeform <code>description</code> field within Action Objects may
+  contain sensitive information about a user's activity or an organization's
+  security posture. Receipt Senders MUST ensure that Action Receipt SETs are
+  transmitted only over TLS and only to an authenticated, authorized
+  Transmitter endpoint. Receipt Senders SHOULD apply the principle of minimum
+  necessary disclosure when composing action descriptions and MUST NOT include
+  information beyond what is reasonably required for the Transmitter to
+  understand the actions taken.
+</p>
+
+<h3 id="section-8.2"><a href="#section-8.2">8.2.</a> <span id="name-priv-minimization">Data Minimization</span></h3>
+
+<p>
+  Receipt Senders SHOULD minimize the personal data included in Action Receipt
+  SETs. In particular, Receipt Senders SHOULD NOT include in the
+  <code>description</code> fields any data beyond a characterization of the
+  action taken. Subject identifiers included in the Action Receipt SET SHOULD
+  be limited to what is necessary to allow the Transmitter to correlate the
+  receipt to the Originating Event. Where the <code>ref_txn</code> value
+  alone is sufficient for correlation, Receipt Senders MAY consider whether
+  inclusion of a full subject identifier is necessary.
+</p>
+
+<!-- SECTION 9 -->
+<h2 id="section-9"><a href="#section-9">9.</a> <span id="name-iana-considerations">IANA Considerations</span></h2>
+
+<h3 id="section-9.1"><a href="#section-9.1">9.1.</a> <span id="name-iana-event-types">SSF Event Type Registrations</span></h3>
+
+<p>
+  This specification requests registration of the following event type URIs
+  in the SSF Event Types registry:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Event Type URI</th><th>Description</th><th>Reference</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>https://schemas.openid.net/secevent/ssf/event-type/action-receipt</code></td>
+      <td>Indicates that the Receiver has taken one or more actions in response to a previously received SSF event.</td>
+      <td>This specification, <a href="#section-3">Section 3</a></td>
+    </tr>
+    <tr>
+      <td><code>https://schemas.openid.net/secevent/ssf/event-type/action-receipt-acknowledgement</code></td>
+      <td>Sent by a Transmitter to confirm receipt and processing of an Action Receipt SET.</td>
+      <td>This specification, <a href="#section-5">Section 5</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<h3 id="section-9.2"><a href="#section-9.2">9.2.</a> <span id="name-iana-metadata">Transmitter Configuration Metadata Registration</span></h3>
+
+<p>
+  This specification requests registration of the following field in the
+  Transmitter Configuration Metadata registry:
+</p>
+
+<table>
+  <thead>
+    <tr><th>Metadata Field Name</th><th>Description</th><th>Reference</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>action_receipt_endpoint</code></td>
+      <td>URL of the Action Receipt Endpoint at which the Transmitter accepts Action Receipt SETs from authorized Receivers.</td>
+      <td>This specification, <a href="#section-4.1">Section 4.1</a></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- SECTION 10 -->
+<h2 id="section-10"><a href="#section-10">10.</a> <span id="name-normative-references">Normative References</span></h2>
+
+<dl>
+  <dt id="RFC2119">[RFC2119]</dt>
+  <dd>Bradner, S., "Key words for use in RFCs to Indicate Requirement Levels",
+  BCP 14, RFC 2119, March 1997.</dd>
+
+  <dt id="RFC6750">[RFC6750]</dt>
+  <dd>Jones, M. and D. Hardt, "The OAuth 2.0 Authorization Framework: Bearer
+  Token Usage", RFC 6750, October 2012.</dd>
+
+  <dt id="RFC7515">[RFC7515]</dt>
+  <dd>Jones, M., Bradley, J., and N. Sakimura, "JSON Web Signature (JWS)",
+  RFC 7515, May 2015.</dd>
+
+  <dt id="RFC7519">[RFC7519]</dt>
+  <dd>Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token (JWT)",
+  RFC 7519, May 2015.</dd>
+
+  <dt id="RFC8174">[RFC8174]</dt>
+  <dd>Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words",
+  BCP 14, RFC 8174, May 2017.</dd>
+
+  <dt id="RFC8417">[RFC8417]</dt>
+  <dd>Hunt, P., Jones, M., Denniss, W., and M. Ansari, "Security Event Token
+  (SET)", RFC 8417, July 2018.</dd>
+
+  <dt id="RFC8446">[RFC8446]</dt>
+  <dd>Rescorla, E., "The Transport Layer Security (TLS) Protocol Version 1.3",
+  RFC 8446, August 2018.</dd>
+
+  <dt id="SSF">[SSF]</dt>
+  <dd>Tulshibagwale, A., et al., "OpenID Shared Signals Framework Specification
+  1.0", OpenID Foundation, August 2025.
+  &lt;https://openid.github.io/sharedsignals/openid-sharedsignals-framework-1_0.html&gt;</dd>
+</dl>
+
+<!-- APPENDIX A -->
+<h2 id="appendix-A"><a href="#appendix-A">Appendix A.</a> <span id="name-acknowledgements">Acknowledgements</span></h2>
+
+<p>
+  The editors would like to thank the members of the OpenID Shared Signals
+  Working Group for their contributions and review of this specification.
+</p>
+
+<!-- APPENDIX B -->
+<h2 id="appendix-B"><a href="#appendix-B">Appendix B.</a> <span id="name-notices">Notices</span></h2>
+
+<p>
+  Copyright (c) 2025 The OpenID Foundation.
+</p>
+<p>
+  The OpenID Foundation (OIDF) grants to any Contributor, developer,
+  implementer, or other interested party a non-exclusive, royalty free,
+  worldwide copyright license to reproduce, prepare derivative works from,
+  distribute, perform and display, this Implementers Draft or Final
+  Specification solely for the purposes of (i) developing specifications, and
+  (ii) implementing Impleme
