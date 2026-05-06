@@ -173,13 +173,13 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD",
 document are to be interpreted as described in BCP 14 {{RFC2119}} {{RFC8174}}
 when, and only when, they appear in all capitals, as shown here.
 
-# Terminology
+# Terminology yo
 
 - **Action Receipt** - A Security Event Token (SET) originated by an SSF Receiver and delivered to an SSF Transmitter to indicate that one or more actions were taken in response to a previously received SSF event.
 - **Action Receipt Endpoint** - An HTTP endpoint hosted by the SSF Transmitter at which it accepts Action Receipts from Receivers.
 - **Receipt Sender** - The SSF Receiver that constructs and delivers an Action Receipt to a Transmitter. In the context of an Action Receipt SET, the Receipt Sender acts as the issuer of that SET.
 - **Receipt Acknowledgement** - An optional SET originated by the SSF Transmitter and delivered to the Receiver via the existing event stream to confirm that a specific Action Receipt was received and processed.
-- **Originating Event** - The SSF event, previously transmitted by the Transmitter, to which an Action Receipt refers.
+- **Originating Event** - The SSF event, previously transmitted by the Transmitter, to which an Action Receipt refers...
 
 {: #session-revoked-example-user-device title="Example: Session Revoked -
 Complex Subject describing user + device + tenant (includes optional claims)"}
